@@ -250,6 +250,9 @@ switch ($_REQUEST['h']) {
 		$settingName = $_REQUEST['settingid'];
 		$old = json_decode($modx->getConfig($settingName),true);
 		$result = $modx->db->delete($table, "`setting_name` = '".$settingName."'");
+		//add work without plugin
+		$result = $modx->db->delete($table, "`setting_name` = '".str_replace("global_", "g_", $settingName)."'");
+		
 		if($result) {
 			$modx->clearCache('full');
 			sleep(3);
