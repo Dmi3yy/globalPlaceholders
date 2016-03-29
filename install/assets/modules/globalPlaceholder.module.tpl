@@ -1,3 +1,19 @@
+// <?php 
+/**
+ * globalPlaseholders
+ * 
+ * модуль пользоватьских настроек для сайта
+ * 
+ * @category	module
+ * @version 	0.1
+ * @license 	http://www.gnu.org/copyleft/gpl.html GNU Public License (GPL)
+ * @internal	@properties	 
+ * @internal	@guid gperwtg45254g245t425t425
+ * @internal	@shareparams 1
+ * @internal	@modx_category add
+ */
+
+
 $useG = $useG ? $useG : false;
 $useG = $useG == "true" ? true : false;
 $globalprefix = $globalprefix ? $globalprefix : "";

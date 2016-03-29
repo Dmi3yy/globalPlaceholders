@@ -1,3 +1,21 @@
+//<?php
+/**
+ * globalPlaseholder
+ * 
+ * globalPlaseholders
+ *
+ * @category 	plugin
+ * @version 	0.1
+ * @license 	http://www.gnu.org/copyleft/gpl.html GNU Public License (GPL)
+ * @author      WorkForFood
+ * @internal	@properties 
+ * @internal	@events OnParseDocument
+ * @internal    @installset base
+ * @internal    @legacy_names globalPlaseholder
+ * @internal    @disabled 1
+ */
+
+
 $e = &$modx->Event;
 $validated = $_SESSION['mgrValidated'];
 $fronteditor = $fronteditor ? ($fronteditor == "true" ? true : false ) : false;

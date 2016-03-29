@@ -1,3 +1,20 @@
+//<?php
+/**
+ * gPHFrontEditor
+ * 
+ * gPHFrontEditor
+ *
+ * @category 	plugin
+ * @version 	0.1
+ * @license 	http://www.gnu.org/copyleft/gpl.html GNU Public License (GPL)
+ * @author      WorkForFood
+ * @internal	@properties 
+ * @internal	@events OnWebPagePrerender,OnWebPageInit
+ * @internal    @installset base
+ * @internal    @legacy_names gPHFrontEditor
+ * @internal    @disabled 1
+ */
+
 $fronteditor = $fronteditor ? ($fronteditor == "true" ? true : false ) : false;
 $useG = $useG ? $useG : false;
 $useG = $useG == "true" ? true : false;
