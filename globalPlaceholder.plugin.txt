@@ -1,6 +1,8 @@
 $e = &$modx->Event;
+$validated = $_SESSION['mgrValidated'];
+$fronteditor = $fronteditor ? ($fronteditor == "true" ? true : false ) : false;
+$prefix = $prefix ? $prefix : "";
 $docid = &$modx->documentIdentifier;
-$prefix = "g.";
 global $globalPlaceholders;
 if ($e->name == 'OnParseDocument') {
 	if(!$globalPlaceholders) {
@@ -8,11 +10,21 @@ if ($e->name == 'OnParseDocument') {
 		$settings = $modx->config;
 		foreach($settings as $key=>$value) {
 			if(stristr($key, 'global_')) {
-				unset($modx->config[$key]);
-				$newkey = str_replace("global_", "", $key);
 				$val = json_decode($value,true);
-				$modx->config[$prefix.$newkey] = $val['value'];
+				$newkey = str_replace("global_", "", $key);
 				$newval = is_array($val['value']) ? json_encode($val['value']) : $val['value'];
+				if($validated == 1 && $fronteditor && $val['frontEditor'] === "1") {
+					if($val['type'] == "richtext") {
+						$newval = "<div class='globalplaceholdereditor' id='".$key."' data-name='".$key."' data-value='".$newval."'>".$newval."</div>";
+					} else 
+					if($val['type'] == "text" || $val['type'] == "textarea") {
+						$newval = "<div class='globalplaceholdereditortext' contenteditable='true' id='".$key."' data-name='".$key."' data-value='".$newval."'>".$newval."</div>";
+					} else 
+					if($val['type'] == "image" || $val['type'] == "file") {
+						
+					}
+				}
+				$modx->config[$prefix.$newkey] = $newval;
 				if($val['globalTV'] === true || $val['globalTV'] == "1") {
 					$modx->documentObject[$prefix.$newkey][0] = $newkey;
 					$modx->documentObject[$prefix.$newkey][1] = $newval;

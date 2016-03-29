@@ -1,3 +1,6 @@
+$useG = $useG ? $useG : false;
+$useG = $useG == "true" ? true : false;
+$globalprefix = $globalprefix ? $globalprefix : "";
 $outputTabs = $outputTabs ? $outputTabs : false;
 $outputTabs = $outputTabs == "true" ? true : false;
 $output = "";		
@@ -49,6 +52,15 @@ function json_encode_wrapper ($array) {
 	}
 }
 
+function compareOrder ($a,$b) {
+	$a['setting_order'] = $a['setting_order'] ? $a['setting_order'] : 0;
+	$b['setting_order'] = $b['setting_order'] ? $b['setting_order'] : 0;
+	if ($a['setting_order'] == $b['setting_order']) {
+		return 0;
+	}
+	return ($a['setting_order'] < $b['setting_order']) ? -1 : 1;
+}
+
 switch ($_REQUEST['h']) {
 	default:
 		$settings = $modx->config;
@@ -73,17 +85,28 @@ switch ($_REQUEST['h']) {
 		} else {
 			$outSettingsTemplate = $outputTabs === true ? "mainTabTabSettingsParent" : "mainTabSettingsParent";
 			$settingsItemsTemplate = $outputTabs === true ? "mainTabTabSettingItem" : "mainTabSettingItem";
+			$settingsItemsTemplate = $userrole == 1 ? $settingsItemsTemplate : $settingsItemsTemplate."User";
 			foreach ($groups as $key=>$value) {
 				$groupsItems = "";
 				$settingsItems = "";
+				usort($groupsSettings[$value['group']],"compareOrder");
 				foreach($groupsSettings[$value['group']] as $k=>$v) {
+					$v['settingSD'] = "";
+					$v['value'] = $v['value'] ? $v['value'] : "";
 					if($v['type'] == "richtext") { 
-						array_push($replace_richtexteditor,$k);
+						array_push($replace_richtexteditor,"global_".$v['settingName']);
 						$v['value'] = $modx->htmlspecialchars($v['value']);
 					}
 					if($v['type'] == "richtext" || $v['type'] == "textarea" || $v['type'] == "input") { 
 						$v['value'] = stripslashes($v['value']);
+						if($v['type'] == "textarea") {
+							$v['value'] = str_replace("<br>","\r\n", $v['value']);
+						}
 					}
+					$v['settingSD'] .= $v['globalTV'] === true || $v['globalTV'] == "1" ? "gTV " : "" ;
+					$v['settingSD'] .= $v['globalPH'] === true || $v['globalPH'] == "1" ? "gPH " : "" ;
+					$v['settingSD'] .= $v['frontEditor'] === true || $v['frontEditor'] == "1" ? "FrontEditor" : "" ;
+					$v['settingSD'] = trim($v['settingSD']);
 					$newValues = renderSettingElement($v,$render);
 					$render->setPlaceholders($newValues,"view.");
 					$settingsElement = $render->render("settingsElement".$v['type'],$render->ph);
@@ -158,6 +181,7 @@ switch ($_REQUEST['h']) {
 		$data['selected'.$data['type']] = "selected";
 		if($data['globalTV'] === true || $data['globalTV'] == "1") { $data['globalTVchecked'] = "checked"; } 
 		if($data['globalPH'] === true || $data['globalPH'] == "1") { $data['globalPHchecked'] = "checked"; } 
+		if($data['frontEditor'] === true || $data['frontEditor'] == "1") { $data['frontEditorchecked'] = "checked"; }
 		$render->setPlaceholders($data,"view.");
 		$output = $render->render("editpage",$render->ph);
 		$output = $modx->mergeSettingsContent($output);
@@ -179,6 +203,7 @@ switch ($_REQUEST['h']) {
 		if($_POST['newgroup'] == "" && ($_POST['group'] == "no_category" || !isset($_POST['group']) )) { $_POST['newgroup'] = $render->lang['no_category']; }
 		if(!isset($_POST['globalTV'])) { $_POST['globalTV'] = 0; }
 		if(!isset($_POST['globalPH'])) { $_POST['globalPH'] = 0; }
+		if(!isset($_POST['frontEditor'])) { $_POST['frontEditor'] = 0; }
 		if(!empty($_POST['setting_name'])) { $_POST['setting_name'] = $render->translateString($_POST['setting_name']); }
 		if(!isset($_POST['setting_oldname'])) {
 			$duplicate = json_decode($modx->getConfig("global_".$_POST['setting_name']),true);
@@ -188,10 +213,12 @@ switch ($_REQUEST['h']) {
 			$new['setting_name'] = "global_".$_POST['setting_name'];
 			$new['setting_value'] = array(
 				"type"=>$_POST['type'],
+				"frontEditor" => $_POST['frontEditor'],
 				"values"=>$_POST['values'],
 				"globalTV"=>$_POST['globalTV'],
 				"globalPH"=>$_POST['globalTV'],
-				"settingDescription"=>$_POST['settingDescription']
+				"settingDescription"=>$_POST['settingDescription'],
+				"setting_order"=>$_POST['setting_order']
 			);
 			if(!empty($_POST['newgroup']) && $_POST['newgroup'] != "") {
 				$new['setting_value']['group'] = $render->translateString($_POST['newgroup']);
@@ -202,8 +229,12 @@ switch ($_REQUEST['h']) {
 			}
 			$new['setting_value'] = json_encode_wrapper($new['setting_value']);
 			$result = $modx->db->insert($new,$table);
+			//add work without plugin
+			if ($useG) {
+				$result = $modx->db->insert(array('setting_name'=>str_replace("global_", $globalprefix, $new['setting_name']) ),$table);
+			}
 			$modx->clearCache('full');
-			sleep(3);
+			sleep(2);
 			header('Location: '.$moduleurl);
 		} else {
 			$duplicate = json_decode($modx->getConfig("global_".$_POST['setting_name']),true);
@@ -226,6 +257,9 @@ switch ($_REQUEST['h']) {
 				$old['group'] = $groups[$_POST['group']]['group'];
 				$old['groupName'] = $groups[$_POST['group']]['groupName'];
 			}
+			
+			$old['frontEditor'] = $_POST['frontEditor'];
+			$old['setting_order'] = $_POST['setting_order'];
 			$old['globalTV'] = $_POST['globalTV'];
 			$old['globalPH'] = $_POST['globalPH'];
 			$old = json_encode_wrapper($old);
@@ -236,10 +270,14 @@ switch ($_REQUEST['h']) {
 				$updata = array();
 				$updata['setting_name'] = "global_".$_POST['setting_name'];
 				$modx->db->query("UPDATE  ".$table." SET  `setting_name` =  'global_".$_POST['setting_name']."' WHERE  ".$table.".`setting_name` =  '".$_POST['setting_oldname']."'");
+				//add work without plugin
+				if ($useG) {
+					$modx->db->query("UPDATE  ".$table." SET  `setting_name` =  'g_".$_POST['setting_name']."' WHERE  ".$table.".`setting_name` =  '".str_replace("global_", $globalprefix, $_POST['setting_oldname'])."'");
+				}
 			}
 			if($result) {
 				$modx->clearCache('full');
-				sleep(3);
+				sleep(2);
 				header('Location: '.$moduleurl);
 			} else {
 				echo "shit";
@@ -251,11 +289,12 @@ switch ($_REQUEST['h']) {
 		$old = json_decode($modx->getConfig($settingName),true);
 		$result = $modx->db->delete($table, "`setting_name` = '".$settingName."'");
 		//add work without plugin
-		$result = $modx->db->delete($table, "`setting_name` = '".str_replace("global_", "g_", $settingName)."'");
-		
+		if ($useG) {
+			$result = $modx->db->delete($table, "`setting_name` = '".str_replace("global_", $globalprefix, $settingName)."'");
+		}
 		if($result) {
 			$modx->clearCache('full');
-			sleep(3);
+			sleep(2);
 			header('Location: '.$moduleurl);
 		}
 	break;
@@ -268,20 +307,25 @@ switch ($_REQUEST['h']) {
 				if(!isset($_POST[$key])) { $_POST[$key] = 0; }
 				if($origval != $_POST[$key]) {
 					$jsonval['value'] = json_decode($_POST[$key],true);
-					if($jsonval['type'] == "richtext") {
+					if($jsonval['type'] == "richtext" || $jsonval['type'] == "textarea" || $jsonval['type'] == "input") {
+						$rn = $jsonval['type'] == "textarea" || $jsonval['type'] == "input" ? "<br>" : "";
 						$jsonval['value'] = addslashes(stripslashes($_POST[$key]));
-						$jsonval['value'] = trim(str_replace(array("\n", "\r"), '', json_encode_wrapper($jsonval['value'])));
-						print_r($jsonval['value']);
+						$jsonval['value'] = trim(str_replace(array("\r\n","\n", "\r"), $rn, json_encode_wrapper($jsonval['value'])));
+						$jsonval['value'] = is_array(json_decode(stripslashes($jsonval['value']),true)) ? json_decode(stripslashes($jsonval['value']),true) : $jsonval['value'];
 					} else {
 						$jsonval['value'] = is_array($jsonval['value']) ? $jsonval['value'] : $_POST[$key];
 					}
 					$value = json_encode_wrapper($jsonval);
 					$result = $modx->db->update(Array("setting_value"=>$value), $table, $table.".`setting_name` = '".$key."'");
+					//add work without plugin
+					if ($useG) {
+						$result = $modx->db->update(Array("setting_value"=>$jsonval['value']), $table, $table.".`setting_name` = '".str_replace("global_", $globalprefix, $key)."'");
+					}
 				}
 			}
 		}
 		$modx->clearCache('full');
-		sleep(3);
+		sleep(2);
 		header('Location: '.$moduleurl);
 	break;
 }
