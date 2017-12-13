@@ -36,7 +36,7 @@ function checkMainConfig ($modx,$table,$rewrite = false) {
 		"gph_installed"=>"1",
 		"gph_outputTabs"=>"1",
 		"gph_fronteditor"=>"0",
-		"gph_useG"=>"0",
+		"gph_useG"=>"1",
 		"gph_prefix"=>"",
 		"gph_globalprefix"=>"g_"
 	);
