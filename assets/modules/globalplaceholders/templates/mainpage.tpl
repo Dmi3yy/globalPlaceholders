@@ -7,6 +7,7 @@
 		<ul class="actionButtons">
 			<li id="Button1"><a href="#" onclick="documentDirty=false; document.settings.submit();"><img src="[+style.icons_save+]"> [+lang.save+] </a></li>
 			<li id="Button2"><a href="#" onclick="documentDirty=false; document.location.href='index.php?a=112&h=add&id=[+pluginid+]';"><img src="[+style.icons_add+]"> [+lang.add+] </a></li>
+			<li id="Button3"><a href="#" onclick="documentDirty=false; document.location.href='index.php?a=112&h=config&id=[+pluginid+]';"><img src="[+style.icons_save+]"> [+lang.settings_config+] </a></li>
 			<li id="Button5"><a href="#" onclick="documentDirty=false; document.location.href='index.php?a=2';"><img src="[+style.icons_cancel+]"> [+lang.cancel+] </a></li>
 		</ul>
 	</div>

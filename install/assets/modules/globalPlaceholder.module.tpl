@@ -1,24 +1,23 @@
 // <?php 
 /**
- * globalPlaseholders
+ * globalPlaсeholders
  * 
- * модуль пользоватьских настроек для сайта
+ * project global settings module
  * 
  * @category	module
  * @version 	0.1
  * @license 	http://www.gnu.org/copyleft/gpl.html GNU Public License (GPL)
+ * @author      WorkForFood
  * @internal	@properties	 
- * @internal	@guid gperwtg45254g245t425t425
+ * @internal	@guid 4b4a6e4c16ee4fdfb4e7a41c25662f48
  * @internal	@shareparams 1
- * @internal	@modx_category add
+ * @internal    @locked 1
+ * @internal	@modx_category globalPlaсeholders
  */
 
-
-$useG = $useG ? $useG : false;
-$useG = $useG == "true" ? true : false;
-$globalprefix = $globalprefix ? $globalprefix : "";
-$outputTabs = $outputTabs ? $outputTabs : false;
-$outputTabs = $outputTabs == "true" ? true : false;
+$useG = $modx->getConfig("gph_useG");
+$globalprefix = $modx->getConfig("gph_globalprefix");
+$outputTabs = $modx->getConfig("gph_outputTabs");
 $output = "";		
 $table = $modx->getFullTableName("system_settings");
 $userrole = $modx->getUserInfo($modx->getLoginUserID());
@@ -31,6 +30,29 @@ include_once($globalPHPath."includes/class.renderer.inc.php");
 $render = new Render($modx,$modulename);
 $render->templatesDir = $globalPHPath."templates";
 $render->setPlaceholders(Array('moduleurl' => $moduleurl, 'modulename' => $modulename, 'modulepath' => $globalPHPath, 'theme' => $modx->config['manager_theme'], 'modx_manager_url' => MODX_MANAGER_URL, 'pluginid' => $_REQUEST['id']));
+
+function checkMainConfig ($modx,$table,$rewrite = false) {
+	$config = array (
+		"gph_installed"=>"1",
+		"gph_outputTabs"=>"1",
+		"gph_fronteditor"=>"0",
+		"gph_useG"=>"1",
+		"gph_prefix"=>"",
+		"gph_globalprefix"=>"g_"
+	);
+	foreach ($config as $k=>$v) {
+		$oldconfig = $modx->getConfig($k);
+		if(!$oldconfig && !$rewrite) {
+			$new = array();
+			$new['setting_name'] = $k;
+			$new['setting_value'] = $v;
+			$result = $modx->db->insert($new,$table);
+		} else 
+		if(!empty($oldconfig) || $rewrite) {
+			$result = $modx->db->update(Array("setting_value"=>$v), $table, $table.".`setting_name` = '".$k."'");
+		}
+	}
+}
 
 function renderSettingElement ($values,$render) {
 	if($values['type'] == "text" || $values['type'] == "textarea") {
@@ -79,6 +101,12 @@ function compareOrder ($a,$b) {
 
 switch ($_REQUEST['h']) {
 	default:
+		if($modx->getConfig("gph_installed") != "1") {
+			checkMainConfig($modx,$table);
+			$modx->clearCache('full');
+			sleep(2);
+			header('Location: '.$moduleurl);
+		}
 		$settings = $modx->config;
 		$globalSettings = Array();
 		$groups = Array();
@@ -90,11 +118,11 @@ switch ($_REQUEST['h']) {
 			if(stristr($key, 'global_')) {
 				if (is_object(json_decode($value))) //check if setting is JSON object?
  				{ 
- 					$jsonval = json_decode($value,true);
- 					$jsonval['settingName'] = str_replace("global_", "", $key);
- 					$groups[$jsonval['group']] = Array("group"=>$jsonval['group'],"groupName"=>$jsonval['groupName']);
- 					$globalSettings[$key] = $jsonval;
- 					$groupsSettings[$jsonval['group']][$key] = $jsonval;			
+				$jsonval = json_decode($value,true);
+				$jsonval['settingName'] = str_replace("global_", "", $key);
+				$groups[$jsonval['group']] = Array("group"=>$jsonval['group'],"groupName"=>$jsonval['groupName']);
+				$globalSettings[$key] = $jsonval;
+				$groupsSettings[$jsonval['group']][$key] = $jsonval;
  				}
 			}
 		}
@@ -102,8 +130,8 @@ switch ($_REQUEST['h']) {
 		if(sizeof($globalSettings) == 0) {
 			$output = $render->render("mainpage",$render->ph);
 		} else {
-			$outSettingsTemplate = $outputTabs === true ? "mainTabTabSettingsParent" : "mainTabSettingsParent";
-			$settingsItemsTemplate = $outputTabs === true ? "mainTabTabSettingItem" : "mainTabSettingItem";
+			$outSettingsTemplate = $outputTabs == "1" ? "mainTabTabSettingsParent" : "mainTabSettingsParent";
+			$settingsItemsTemplate = $outputTabs == "1" ? "mainTabTabSettingItem" : "mainTabSettingItem";
 			$settingsItemsTemplate = $userrole == 1 ? $settingsItemsTemplate : $settingsItemsTemplate."User";
 			foreach ($groups as $key=>$value) {
 				$groupsItems = "";
@@ -151,12 +179,42 @@ switch ($_REQUEST['h']) {
 			$tab = (is_numeric($_GET['tab'])) ? '<script type="text/javascript"> Us.setSelectedIndex( '.$_GET['tab'].' );</script>' : '';
 			$render->setPlaceholders(Array('tab' => $tab, 'tabGroups' => $outGroups, 'tabSettings' => $outSettings ));
 			$templatename = $userrole == 1 ? "mainpage" : "mainpageUser";
-			if($outputTabs == true) {
+			if($outputTabs == "1") {
 				$templatename .= "Tabs";
 			}
 			$output = $render->render($templatename,$render->ph);
 			$output = $modx->mergeSettingsContent($output);
 		}
+	break;
+	case "config":
+		$settings = $modx->config;
+		foreach($settings as $key=>$value) {
+			if(stristr($key, 'gph_')) {
+				if($key != "gph_prefix" && $key != "gph_globalprefix") {
+					$render->setPlaceholder("view.".$key."_".$value,"selected");
+				} else {
+					$render->setPlaceholder("view.".$key,$value);
+				}
+			}
+		}
+		$output = $render->render("config",$render->ph);
+		$output = $modx->mergeSettingsContent($output);
+	break;
+	case "saveconfig":
+		foreach($_POST as $key=>$value) {
+			if(stristr($key, 'gph_')) {
+				$result = $modx->db->update(Array("setting_value"=>$value), $table, $table.".`setting_name` = '".$key."'");
+			}
+		}
+		$modx->clearCache('full');
+		sleep(2);
+		header('Location: '.$moduleurl."h=config");
+	break;
+	case "resetconfig":
+		checkMainConfig($modx,$table,true);
+		$modx->clearCache('full');
+		sleep(2);
+		header('Location: '.$moduleurl."h=config");
 	break;
 	case "add":
 		$settings = $modx->config;
@@ -249,7 +307,7 @@ switch ($_REQUEST['h']) {
 			$new['setting_value'] = json_encode_wrapper($new['setting_value']);
 			$result = $modx->db->insert($new,$table);
 			//add work without plugin
-			if ($useG) {
+			if ($useG == "1") {
 				$result = $modx->db->insert(array('setting_name'=>str_replace("global_", $globalprefix, $new['setting_name']) ),$table);
 			}
 			$modx->clearCache('full');
@@ -290,7 +348,7 @@ switch ($_REQUEST['h']) {
 				$updata['setting_name'] = "global_".$_POST['setting_name'];
 				$modx->db->query("UPDATE  ".$table." SET  `setting_name` =  'global_".$_POST['setting_name']."' WHERE  ".$table.".`setting_name` =  '".$_POST['setting_oldname']."'");
 				//add work without plugin
-				if ($useG) {
+				if ($useG == "1") {
 					$modx->db->query("UPDATE  ".$table." SET  `setting_name` =  'g_".$_POST['setting_name']."' WHERE  ".$table.".`setting_name` =  '".str_replace("global_", $globalprefix, $_POST['setting_oldname'])."'");
 				}
 			}
@@ -308,7 +366,7 @@ switch ($_REQUEST['h']) {
 		$old = json_decode($modx->getConfig($settingName),true);
 		$result = $modx->db->delete($table, "`setting_name` = '".$settingName."'");
 		//add work without plugin
-		if ($useG) {
+		if ($useG == "1") {
 			$result = $modx->db->delete($table, "`setting_name` = '".str_replace("global_", $globalprefix, $settingName)."'");
 		}
 		if($result) {
@@ -337,12 +395,18 @@ switch ($_REQUEST['h']) {
 					$value = json_encode_wrapper($jsonval);
 					$result = $modx->db->update(Array("setting_value"=>$value), $table, $table.".`setting_name` = '".$key."'");
 					//add work without plugin
-					if ($useG) {
-						$result = $modx->db->update(Array("setting_value"=>$jsonval['value']), $table, $table.".`setting_name` = '".str_replace("global_", $globalprefix, $key)."'");
+					if ($useG == "1") {
+						$isset = $modx->db->getValue( $modx->db->select( 'count(*)', $table, "setting_name='".str_replace("global_", $globalprefix, $key)."'") );
+						if($isset){
+							$result = $modx->db->update(Array("setting_value"=>$jsonval['value']), $table, $table.".`setting_name` = '".str_replace("global_", $globalprefix, $key)."'");
+						} else {
+							$result = $modx->db->insert(array('setting_name'=>str_replace("global_", $globalprefix, $key), "setting_value"=>$jsonval['value'] ),$table);   
+						}
 					}
 				}
 			}
 		}
+			
 		$modx->clearCache('full');
 		sleep(2);
 		header('Location: '.$moduleurl);

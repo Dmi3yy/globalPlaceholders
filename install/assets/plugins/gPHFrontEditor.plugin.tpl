@@ -2,25 +2,29 @@
 /**
  * gPHFrontEditor
  * 
- * gPHFrontEditor
+ * globalPlaceholders frontend content editor
  *
  * @category 	plugin
  * @version 	0.1
  * @license 	http://www.gnu.org/copyleft/gpl.html GNU Public License (GPL)
  * @author      WorkForFood
  * @internal	@properties 
- * @internal	@events OnWebPagePrerender,OnWebPageInit
+ * @internal	@events OnWebPagePrerender,OnWebPageInit,OnWebPageComplete
  * @internal    @installset base
  * @internal    @legacy_names gPHFrontEditor
  * @internal    @disabled 1
+ * @internal    @locked 1
+ * @internal	@modx_category globalPlaсeholders
  */
 
-$fronteditor = $fronteditor ? ($fronteditor == "true" ? true : false ) : false;
-$useG = $useG ? $useG : false;
-$useG = $useG == "true" ? true : false;
+$useG = $modx->getConfig("gph_useG");
+$prefix = $modx->getConfig("gph_prefix");
+$outputTabs = $modx->getConfig("gph_outputTabs");
+$fronteditor = $modx->getConfig("gph_fronteditor");
+$globalprefix = $modx->getConfig("gph_globalprefix");
 $action = $_REQUEST['gphfe'] ? $_REQUEST['gphfe'] : "default";
-$globalprefix = $globalprefix ? $globalprefix : "";
-$e = &$modx->Event;
+$validated = isset($_SESSION['mgrValidated']) && $_SESSION['mgrValidated'] == 1 ? $_SESSION['mgrValidated'] : 0;
+$e = $modx->Event;
 $gphfe = new gPHfe($modx);
 $gphfe->modx = &$modx;
 $gphfe->useG = $useG;
@@ -28,31 +32,36 @@ $gphfe->table = $modx->getFullTableName("system_settings");
 $gphfe->fronteditor = $fronteditor;
 $gphfe->globalprefix = $globalprefix;
 
-if (isset($_SESSION['mgrValidated']) && $_SESSION['mgrValidated'] == 1) {
-	switch ($e->name) {
-		case "OnWebPagePrerender":
-			if($action == "savePH") {
-				$out = &$modx->documentOutput;
-				$data = array();
-				$data['name'] = $modx->db->escape($_REQUEST['name']);
-				$data['value'] = $modx->db->escape($_REQUEST['value']);
-				$data['setting'] = $modx->getConfig($data['name']);
-				$out = $gphfe->saveSetting($data);
-			}
-			return;
-		break;
-		case "OnWebPageInit":
-			if($action == "default") {
-				$gphfe->insertScripts();
-				$gphfe->insertImageEditor();
-			}
-			return;
-	 	break;
-		default:
-			return;
-	 	break;
-	}
+switch ($e->name) {
+	case "OnWebPagePrerender":
+		if($action == "savePH" && $validated == 1 && $fronteditor == 1) {
+			$o = &$modx->documentOutput;
+			$data = array();
+			$data['name'] = $modx->db->escape($_REQUEST['name']);
+			$data['value'] = $modx->db->escape($_REQUEST['value']);
+			$data['setting'] = $modx->getConfig($data['name']);
+			$o = $gphfe->saveSetting($data);
+		}
+		return;
+	break;
+	case "OnWebPageInit":
+		if($action == "default" && $validated == 1 && $fronteditor == 1) {
+			$gphfe->insertScripts();
+			$gphfe->insertImageEditor();
+		}
+		return;
+	break;
+	case "OnWebPageComplete":
+		if($validated == 1 && $fronteditor == 1) {
+			$modx->clearCache();
+		}
+		return;
+	break;
+	default:
+		return;
+	break;
 }
+
 
 class gPHfe {
 	public $modx = null;
@@ -65,13 +74,13 @@ class gPHfe {
 	}
 	
 	function insertImageEditor() {
-		if($this->fronteditor) {
+		if($this->fronteditor == "1") {
 			$settings = $this->modx->config;
 			$imagesout = '<script type="text/javascript"> ';
 			foreach($settings as $key=>$value) {
 				if(stristr($key, 'global_')) {
 					$val = json_decode($value,true);
-					if($this->fronteditor && ($val['frontEditor'] === true || $val['frontEditor'] == "1")) {
+					if($this->fronteditor == "1" && ($val['frontEditor'] === true || $val['frontEditor'] == "1")) {
 						if($val['type'] == "image") {
 							$imagesout .= 'addinsertImageEditor("'.$val['value'].'","'.$key.'"); ';
 						}
@@ -87,7 +96,7 @@ class gPHfe {
 	}
 
 	function insertScripts() {
-		if($this->fronteditor) {
+		if($this->fronteditor == "1") {
 			$replace_richtexteditor = array(".globalplaceholdereditor");
 			$editor =  "";
 			if (is_array($replace_richtexteditor) && sizeof($replace_richtexteditor) > 0) {
@@ -139,6 +148,7 @@ class gPHfe {
 					}
 					$result = true;
 					$result = $this->modx->db->update(Array("setting_value"=>$settingval), $this->table, $this->table.".`setting_name` = '".$name."'");
+					//add work without plugin
 					if ($this->useG) {
 						$result = $this->modx->db->update(Array("setting_value"=>$value), $this->table, $this->table.".`setting_name` = '".str_replace("global_", $this->globalprefix, $name)."'");
 					}

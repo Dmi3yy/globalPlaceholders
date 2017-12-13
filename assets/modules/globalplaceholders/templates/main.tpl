@@ -19,9 +19,6 @@
 		.split {
 			margin-top: 5px;
 		}
-		.sectionBody {
-			padding: 15px !important;
-		}
 		.preLoaderText {
 			left: 50%;
 			top: 50%;
