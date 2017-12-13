@@ -88,11 +88,14 @@ switch ($_REQUEST['h']) {
 		$replace_richtexteditor = array();
 		foreach($settings as $key=>$value) {
 			if(stristr($key, 'global_')) {
-				$jsonval = json_decode($value,true);
-				$jsonval['settingName'] = str_replace("global_", "", $key);
-				$groups[$jsonval['group']] = Array("group"=>$jsonval['group'],"groupName"=>$jsonval['groupName']);
-				$globalSettings[$key] = $jsonval;
-				$groupsSettings[$jsonval['group']][$key] = $jsonval;
+				if (is_object(json_decode($value))) //check if setting is JSON object?
+ 				{ 
+ 					$jsonval = json_decode($value,true);
+ 					$jsonval['settingName'] = str_replace("global_", "", $key);
+ 					$groups[$jsonval['group']] = Array("group"=>$jsonval['group'],"groupName"=>$jsonval['groupName']);
+ 					$globalSettings[$key] = $jsonval;
+ 					$groupsSettings[$jsonval['group']][$key] = $jsonval;			
+ 				}
 			}
 		}
 		sort($groups);
