@@ -10,9 +10,9 @@
 	<input type="hidden" name="filemanager_path" value="[(filemanager_path)]">
 	<input type="hidden" name="rb_base_dir" value="[(rb_base_dir)]">
 	<input type="hidden" name="check_files_onlogin" value="[(check_files_onlogin)]">
-	<div class="section">
-		<div class="sectionHeader"> [+lang.add+] </div>
-		<div class="sectionBody">
+	<div class="section tab-page">
+		
+		<div class="container container-body">
 			<div class="row" style="margin-bottom: 15px;">
 				<div class="col-ss-12 col-xs-4 col-sm-3 col-md-2 col-lg-2">
 					<span class="warning">Имя поля</span><br><span class="comment">имя поля по которому он будет дступен</span>

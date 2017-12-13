@@ -1,4 +1,4 @@
-<h1>[+lang.edit+]</h1>
+<h1>[+lang.edit+] [+view.setting_name+]</h1>
 <div id="actions">
 	<ul class="actionButtons">
 		<!--<li id="Button1"><a href="#" onclick="documentDirty=false; document.settings.submit();"> Сохранить </a></li>-->
@@ -12,9 +12,10 @@
 	<input type="hidden" name="rb_base_dir" value="[(rb_base_dir)]">
 	<input type="hidden" name="check_files_onlogin" value="[(check_files_onlogin)]">
 	<input type="hidden" name="setting_oldname" value="global_[+view.setting_name+]">
-	<div class="section">
-		<div class="sectionHeader"> [+lang.edit+] [+view.setting_name+]</div>
-		<div class="sectionBody">
+	<div class="section tab-page">
+		
+		<div class="container container-body">
+		
 			<div class="row" style="margin-bottom: 15px;">
 				<div class="col-ss-12 col-xs-4 col-sm-3 col-md-2 col-lg-2">
 					<span class="warning">Имя поля</span><br><span class="comment">Описание первого тестового параметра</span>
