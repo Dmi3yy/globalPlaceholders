@@ -36,7 +36,7 @@ function checkMainConfig ($modx,$table,$rewrite = false) {
 		"gph_installed"=>"1",
 		"gph_outputTabs"=>"1",
 		"gph_fronteditor"=>"0",
-		"gph_useG"=>"1",
+		"gph_useG"=>"0",
 		"gph_prefix"=>"",
 		"gph_globalprefix"=>"g_"
 	);
@@ -117,13 +117,14 @@ switch ($_REQUEST['h']) {
 		foreach($settings as $key=>$value) {
 			if(stristr($key, 'global_')) {
 				if (is_object(json_decode($value))) //check if setting is JSON object?
- 				{ 
-				$jsonval = json_decode($value,true);
-				$jsonval['settingName'] = str_replace("global_", "", $key);
-				$groups[$jsonval['group']] = Array("group"=>$jsonval['group'],"groupName"=>$jsonval['groupName']);
-				$globalSettings[$key] = $jsonval;
-				$groupsSettings[$jsonval['group']][$key] = $jsonval;
- 				}
+				{ 
+					$jsonval = json_decode($value,true);
+					$jsonval['settingName'] = str_replace("global_", "", $key);
+					$groups[$jsonval['group']] = Array("group"=>$jsonval['group'],"groupName"=>$jsonval['groupName']);
+					$globalSettings[$key] = $jsonval;
+					$groupsSettings[$jsonval['group']][$key] = $jsonval;
+					
+				}
 			}
 		}
 		sort($groups);
